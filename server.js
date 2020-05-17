@@ -47,6 +47,43 @@ app.get('/api/issues', (request, response) => {
 	})
 });
 
+
+
+const validIssueStatus = {
+	New: true,
+	Open: true,
+	Assigned: true,
+	Fixed: true,
+	Verified: true,
+	Closed: true,
+};
+
+const issueFieldType = {
+	id: 'required',
+	status: 'required',
+	owner: 'required',
+	effort: 'optional',
+	created: 'required',
+	completionDate: 'optional',
+	title: 'required'
+};
+
+function validateIssue(issue) {
+	for (const field in issueFieldType) {
+		const type = issueFieldType[field];
+    	if (!type) {
+     	 	delete issue[field];
+		}
+		else if (type === 'required' && !issue[field]) {
+      		return `${field} is required.`;
+    	}
+  	}
+  	if (!validIssueStatus[issue.status]) {
+    	return `${issue.status} is not a valid status.`;
+    }
+  	return null;
+}
+
 app.post('/api/issues', (request, response) => {
 	const newIssue = request.body;
 	newIssue.id = issues.length + 1;
@@ -56,8 +93,14 @@ app.post('/api/issues', (request, response) => {
 		newIssue.status = 'New';
 	}
 
-	issues.push(newIssue);
-	response.json(newIssue);
+	const error = validateIssue(newIssue);
+	if (error) {
+		response.status(422).json({ message: error });
+	}
+	else {
+		issues.push(newIssue);
+		response.json(newIssue);
+	}
 });
 
 app.listen(3000, function() {
