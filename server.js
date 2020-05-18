@@ -1,3 +1,4 @@
+const mongodb = require('mongodb');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -7,47 +8,30 @@ app.use(express.static('static'));
 app.use(cors());
 app.use(bodyParser.json());
 
-const issues = [
-  {
-    id: 1,
-    status: 'Open',
-    owner: 'Ravan',
-    created: new Date('2016-08-15'),
-    effort: 5,
-    completionDate: undefined,
-    title: 'Error in console when clicking Add',
-  },
-  {
-    id: 2,
-    status: 'Assigned',
-    owner: 'Eddie',
-    created: new Date('2016-08-16'),
-    effort: 14,
-    completionDate: new Date('2016-09-30'),
-    title: 'Missing bottom border on panel',
-  },
-  {
-    id: 3,
-    status: 'Assigned',
-    owner: 'Samuel',
-    created: new Date('2016-08-16'),
-    effort: 14,
-    completionDate: new Date('2016-09-30'),
-    title: 'Missing top border on panel',
-  },
-];
+let db;
+mongodb.MongoClient.connect('mongodb://localhost').then(client => {
+	db = client.db('issuetracker');
+	app.listen(3000, function() {
+	    console.log('App started on port 3000.');
+	});
+}).catch(error => {
+	console.log('Error: ', error);
+})
 
 app.get('/api/issues', (request, response) => {
-	const metadata = {
-		total_count: issues.length
-	};
-	response.json({
-		_metadata: metadata,
-		records: issues
+	db.collection('issues').find().toArray().then(issues => {
+		const metadata = {
+			total_count: issues.length
+		};
+		response.json({
+			_metadata: metadata,
+			records: issues
+		});
+	}).catch(error => {
+		console.log(error);
+		response.status(500).json({ message: error });
 	})
 });
-
-
 
 const validIssueStatus = {
 	New: true,
@@ -59,7 +43,6 @@ const validIssueStatus = {
 };
 
 const issueFieldType = {
-	id: 'required',
 	status: 'required',
 	owner: 'required',
 	effort: 'optional',
@@ -86,7 +69,6 @@ function validateIssue(issue) {
 
 app.post('/api/issues', (request, response) => {
 	const newIssue = request.body;
-	newIssue.id = issues.length + 1;
 	newIssue.created = new Date();
 
 	if (!newIssue.status) {
@@ -98,11 +80,12 @@ app.post('/api/issues', (request, response) => {
 		response.status(422).json({ message: error });
 	}
 	else {
-		issues.push(newIssue);
-		response.json(newIssue);
+		db.collection('issues').insertOne(newIssue).then(result =>
+			db.collection('issues').findOne({
+				_id: result.insertedId
+			})).then(newIssue => response.json(newIssue)).catch(error => {
+				console.log(error);
+				response.status(500).json({ message: error });
+			});
 	}
 });
-
-app.listen(3000, function() {
-    console.log('App started on port 3000.');
-})
