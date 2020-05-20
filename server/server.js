@@ -24,10 +24,20 @@ app.get('/api/issues', (request, response) => {
 	if (request.query.status) {
 		filter.status = request.query.status;
 	}
+	
+	if (request.query.effortLte || request.query.effortGte) {
+		filter.effort = {};
+	}
+	if (request.query.effortLte) {
+		filter.effort.$lte = parseInt(request.query.effortLte, 10);
+	}
+	if (request.query.effortGte) {
+		filter.effort.$gte = parseInt(request.query.effortGte, 10);
+	}
 
 	db.collection('issues').find(filter).toArray().then(issues => {
 		const metadata = {
-			total_count: issues.length
+			totalCount: issues.length
 		};
 		response.json({
 			_metadata: metadata,
