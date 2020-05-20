@@ -1,4 +1,5 @@
 const mongodb = require('mongodb');
+const ObjectId = mongodb.ObjectId;
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -69,5 +70,37 @@ app.post('/api/issues', (request, response) => {
 				console.log(error);
 				response.status(500).json({ message: error });
 			});
+	}
+});
+
+app.get('/api/issues/:id', (request, response) => {
+	let issueId;
+	try {
+		issueId = new ObjectId(request.params.id);
+
+		db.collection('issues').find({ _id: issueId })
+			.limit(1)
+			.next()
+			.then(issue => {
+				if (!issue) {
+					response.status(404).json({
+						message: 'Cannot find an issue with the id ' + issueId
+					});
+				}
+				else {
+					response.json(issue);
+				}
+			})
+			.catch(error => {
+				console.log(error);
+				response.status(500).json({
+					message: error + ''
+				});
+			});
+	}
+	catch (error) {
+		response.status(422).json({
+			message: 'Invalid issue ID. ' + error
+		});
 	}
 });
