@@ -20,7 +20,12 @@ mongodb.MongoClient.connect('mongodb://localhost').then(client => {
 })
 
 app.get('/api/issues', (request, response) => {
-	db.collection('issues').find().toArray().then(issues => {
+	const filter = {};
+	if (request.query.status) {
+		filter.status = request.query.status;
+	}
+
+	db.collection('issues').find(filter).toArray().then(issues => {
 		const metadata = {
 			total_count: issues.length
 		};
@@ -42,7 +47,7 @@ app.post('/api/issues', (request, response) => {
 		newIssue.status = 'New';
 	}
 
-	const error = validateIssue(newIssue);
+	const error = issue.validateIssue(newIssue);
 	if (error) {
 		response.status(422).json({ message: error });
 	}
