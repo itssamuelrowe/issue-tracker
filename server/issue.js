@@ -34,6 +34,28 @@ function validateIssue(issue) {
   	return null;
 }
 
+function cleanupIssue(issue) {
+  	const cleanedUpIssue = {};
+  	Object.keys(issue).forEach(field => {
+	    if (issueFieldType[field]) {
+	    	cleanedUpIssue[field] = issue[field];
+	    }
+  	});
+  	return cleanedUpIssue;
+}
+
+function convertIssue(issue) {
+	if (issue.created) {
+		issue.created = new Date(issue.created);
+	}
+	if (issue.completionDate) {
+		issue.completionDate = new Date(issue.completionDate);
+	}
+	return cleanupIssue(issue);
+}
+
 module.exports = {
-	validateIssue: validateIssue
+	validateIssue: validateIssue,
+	cleanupIssue: cleanupIssue,
+	convertIssue: convertIssue
 };

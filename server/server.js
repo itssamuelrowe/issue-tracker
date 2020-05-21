@@ -3,7 +3,7 @@ const ObjectId = mongodb.ObjectId;
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const issue = require('./issue.js');
+const Issue = require('./issue.js');
 
 const app = express();
 app.use(express.static('static'));
@@ -58,7 +58,7 @@ app.post('/api/issues', (request, response) => {
 		newIssue.status = 'New';
 	}
 
-	const error = issue.validateIssue(newIssue);
+	const error = Issue.validateIssue(newIssue);
 	if (error) {
 		response.status(422).json({ message: error });
 	}
@@ -104,3 +104,38 @@ app.get('/api/issues/:id', (request, response) => {
 		});
 	}
 });
+
+app.put('/api/issues/:id', (request, response) => {
+	let issueId;
+	try {
+		issueId = new ObjectId(request.params.id);
+
+		const issue = request.body;
+		delete issue._id;
+
+		const error = Issue.validateIssue(issue);
+		if (error) {
+			response.status(422).json({ message: error + '' });
+		}
+		else {
+			db.collection('issues').update({ _id: issueId },
+				Issue.convertIssue(issue))
+				.then(() => db.collection('issues')
+					.find({ _id: issueId })
+					.limit(1)
+					.next())
+				.then(savedIssue => response.json(savedIssue))
+				.catch(error => {
+					console.log(error);
+					response.status(500).json({
+						message: error + ''
+					});
+				});
+		}
+	}
+	catch (error) {
+		response.error(422).json({
+			message: error + ''
+		});
+	}
+})
