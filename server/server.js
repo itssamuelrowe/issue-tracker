@@ -139,3 +139,35 @@ app.put('/api/issues/:id', (request, response) => {
 		});
 	}
 })
+
+app.delete('/api/issues/:id', (request, response) => {
+	let issueId;
+	try {
+		issueId = new ObjectId(request.params.id);
+		db.collection('issues').deleteOne({
+			_id: issueId
+		}).then(result => {
+			if (result.result.n === 1) {
+				response.json({
+					status: 'OK'
+				});
+			}
+			else {
+				response.json({
+					status: 'Warning: The specified object could not be found.'
+				})
+			}
+		})
+		.catch(error => {
+			console.log(error);
+			response.response(500).json({
+				message: 'Error: ' + error
+			});
+		})
+	}
+	catch (error) {
+		response.status(422).json({
+			message: 'The specified ID is invalid. ' + error
+		})
+	}
+})
