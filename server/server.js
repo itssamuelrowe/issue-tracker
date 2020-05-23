@@ -36,18 +36,62 @@ app.get('/api/issues', (request, response) => {
 		filter.effort.$gte = parseInt(request.query.effortGte, 10);
 	}
 
-	db.collection('issues').find(filter).toArray().then(issues => {
-		const metadata = {
-			totalCount: issues.length
-		};
-		response.json({
-			_metadata: metadata,
-			records: issues
+	if (request.query.summary === undefined) {
+		let limit = request.query.limit? parseInt(request.query.limit, 10) : 10;
+		if (limit > 50) {
+			limit = 50;
+		}
+		db.collection('issues')
+			.find(filter)
+			.limit(limit)
+			.toArray()
+			.then(issues => {
+			const metadata = {
+				totalCount: issues.length
+			};
+			response.json({
+				_metadata: metadata,
+				records: issues
+			});
+		}).catch(error => {
+			console.log(error);
+			response.status(500).json({ message: error });
 		});
-	}).catch(error => {
-		console.log(error);
-		response.status(500).json({ message: error });
-	})
+	}
+	else {
+		db.collection('issues').aggregate([
+			{
+				$match: filter
+			},
+			{
+				$group: {
+					_id: {
+						owner: '$owner',
+						status: '$status'
+					},
+					count: {
+						$sum: 1
+					}
+				}
+			}
+		]).toArray()
+		.then(results => {
+			const stats = {};
+			results.forEach(result => {
+				if (!stats[result._id.owner]) {
+					stats[result._id.owner] = {};
+				}
+				stats[result._id.owner][result._id.status] = result.count;
+			});
+			response.json(stats);
+		})
+		.catch(error => {
+			console.log(error);
+			response.status(500).json({
+				message: error + ''
+			});
+		})
+	}
 });
 
 app.post('/api/issues', (request, response) => {
