@@ -37,20 +37,25 @@ app.get('/api/issues', (request, response) => {
 	}
 
 	if (request.query.summary === undefined) {
+		const offset = request.query.offset ? parseInt(request.query.offset, 10) : 0;
 		let limit = request.query.limit? parseInt(request.query.limit, 10) : 10;
 		if (limit > 50) {
 			limit = 50;
 		}
-		db.collection('issues')
+		const cursor = db.collection('issues')
 			.find(filter)
-			.limit(limit)
-			.toArray()
-			.then(issues => {
-			const metadata = {
-				totalCount: issues.length
-			};
+			.sort({ _id: 1 })
+			.skip(offset)
+			.limit(limit);
+
+		let totalCount;
+		cursor.count(false).then(result => {
+			totalCount = result;
+			return cursor.toArray();
+		})
+		.then(issues => {
 			response.json({
-				_metadata: metadata,
+				_metadata: { totalCount },
 				records: issues
 			});
 		}).catch(error => {
