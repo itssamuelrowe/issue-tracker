@@ -35,6 +35,11 @@ app.get('/api/issues', (request, response) => {
 	if (request.query.effortGte) {
 		filter.effort.$gte = parseInt(request.query.effortGte, 10);
 	}
+	if (request.query.search) {
+		filter.$text = {
+			$search: request.query.search
+		}
+	}
 
 	if (request.query.summary === undefined) {
 		const offset = request.query.offset ? parseInt(request.query.offset, 10) : 0;
